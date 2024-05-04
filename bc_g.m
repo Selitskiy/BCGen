@@ -14,11 +14,18 @@ saveFolder = '~/';
 dataFolderTmpl = '~/data/BC2EF_Sfx';
 dataFolderSfx = '1072x712';
 
-%[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCFuzzTrain(dataFolderTmpl, dataFolderSfx, @readFunctionGTS);
+%%[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCFuzzTrain(dataFolderTmpl, dataFolderSfx, @readFunctionGTS);
+
 %nFold = 1;
 %[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCCleanTrain(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
-nFold = 2;
-[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCCleanTrain2(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+%nFold = 2;
+%[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCCleanTrain2(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+nFold = 3;
+[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCCleanTrain3(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+%nFold = 4;
+%[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCCleanTrain4(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+%nFold = 5;
+%[trImageDS, eTrainLab, mTrainLab, sTrainLab, trainDataSetFolders] = createBCCleanTrain5(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
 
 % Init
 inje = 0;
@@ -108,7 +115,18 @@ end
 inj = inje + injm + injs;
 
 %% Test images
-[tsImageDS, eTestLab, mTestLab, sTestLab, testDataSetFolders] = createBCFuzzTest(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+if nFold == 1
+    [tsImageDS, eTestLab, mTestLab, sTestLab, testDataSetFolders] = createBCFuzzTest(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+elseif nFold == 2
+    [tsImageDS, eTestLab, mTestLab, sTestLab, testDataSetFolders] = createBCFuzzTest2(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+elseif nFold == 3
+    [tsImageDS, eTestLab, mTestLab, sTestLab, testDataSetFolders] = createBCFuzzTest3(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+elseif nFold == 4
+    [tsImageDS, eTestLab, mTestLab, sTestLab, testDataSetFolders] = createBCFuzzTest4(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+else
+    [tsImageDS, eTestLab, mTestLab, sTestLab, testDataSetFolders] = createBCFuzzTest5(dataFolderTmpl, dataFolderSfx, @readFunction100x100); %@readFunctionGTS);
+end
+
 
 %
 [lts,~] = size(tsImageDS.Files);
@@ -199,7 +217,7 @@ y_out=n*m*3;
 t_out=t_in;
 
 ini_rate = 0.0002; 
-max_epoch = 500; %2000;
+max_epoch = 500; %2000; <15 rmse
 
 %modelName = 'bc_rvis5x5ae';
 modelName = 'bc_rvis5x5mixae';
@@ -288,6 +306,11 @@ end
 %I2p = reshape(Ifp, [n, m]);
 
 %image(I2p .* 255);
+
+%% Not for augmentation check
+AugmentFl = 1;
+if ~AugmentFl
+
 %% test
 
 % GPU on
@@ -329,6 +352,12 @@ gpuDevice([]);
 % Rescale train results
 XTrainFR = generic_mean_std_rescale2D(XTrainF, XTrainMean, XTrainStd);
 XTrainFR2 = generic_mean_std_rescale2D(XTrainF2, XTrainMean, XTrainStd);
+
+end
+%% Not for augmentation check
+AugmentFl = 1;
+if ~AugmentFl
+
 %% random train results
 i = 1 + floor(rand()*l);
 
@@ -370,7 +399,7 @@ I2t = reshape(Ift, [n, m, 3]);
 image(I2t);
 %title(string(I(i)));
 
-
+end
 
 
 
@@ -469,7 +498,8 @@ end
 
 
 
-
+%% Not for augmentation check
+if ~AugmentFl
 %% Makeup variants
 batch_szM = floor(regNet.mb_size);%/injm);
     
@@ -658,7 +688,7 @@ for j=1:injs
 end
 
 
-
+end
 
 
 
@@ -670,41 +700,41 @@ end
 
 
 %% Classification model
-reTrainFl = 1;
-loadedFl = 0;
+%reTrainFl = 1;
+%loadedFl = 0;
 
-modelName = 'bc_rvis5x5mixcl';
-modelFile = strcat(saveFolder, modelName, '.mat');
+%modelName = 'bc_rvis5x5mixcl';
+%modelFile = strcat(saveFolder, modelName, '.mat');
 
-x_in=n*m*3;
-y_out=inje;
+%x_in=n*m*3;
+%y_out=inje;
 
-regNet = residualVis5x5x3BTransAEBaseNet2CL(x_off, x_in, t_in, y_off, y_out, t_out, ini_rate, max_epoch, 1/3, 1/3, 1/3, 1/3, 20, 20, inj, 1/20);
+%regNet = residualVis5x5x3BTransAEBaseNet2CL(x_off, x_in, t_in, y_off, y_out, t_out, ini_rate, max_epoch, 1/3, 1/3, 1/3, 1/3, 20, 20, inj, 1/20);
         
-regNet.mb_size = 64; 
-regNet = Create(regNet);
+%regNet.mb_size = 64; 
+%regNet = Create(regNet);
 %%
-if (loadedFl == 0) || (reTrainFl == 1)
+%if (loadedFl == 0) || (reTrainFl == 1)
 
-    fprintf('Training %s %d\n', modelFile, i);
+%    fprintf('Training %s %d\n', modelFile, i);
 %
 %i=1;
         % GPU on
-        gpuDevice(1);
-        reset(gpuDevice(1));
+%        gpuDevice(1);
+%        reset(gpuDevice(1));
     
-        regNet = regNet.Train(1, XTrainF, YTraine);
+%        regNet = regNet.Train(1, XTrainF, YTraine);
 
         % GPU off
-        delete(gcp('nocreate'));
-        gpuDevice([]); 
+%        delete(gcp('nocreate'));
+%        gpuDevice([]); 
 
     %
-    fprintf('Saving %s %d\n', modelFile, i);
-    save(modelFile, 'regNet');
+%    fprintf('Saving %s %d\n', modelFile, i);
+%    save(modelFile, 'regNet');
 
 % end no file - train
-end
+%end
 
 
 
@@ -809,144 +839,144 @@ end
 
 
 %% Generate All Test Emotion variants
-%batch_szE = floor(regNet.mb_size);%/inje);
+%%batch_szE = floor(regNet.mb_size);%/inje);
     
-XGenFSB = zeros([n*m*3,lts*inje]);
-XGenMeanSB = zeros([lts*inje, 1]);
-XGenStdSB = zeros([lts*inje, 1]);
-XYGenFB = zeros([n*m*3+inj,lts*inje]);
+%XGenFSB = zeros([n*m*3,lts*inje]);
+%XGenMeanSB = zeros([lts*inje, 1]);
+%XGenStdSB = zeros([lts*inje, 1]);
+%XYGenFB = zeros([n*m*3+inj,lts*inje]);
 
-for k=1:lts %batch_szE
+%for k=1:lts %batch_szE
 
     % random train results
-    i = k; %1 + floor(rand()*lts);
-    le = inje;
+%    i = k; %1 + floor(rand()*lts);
+%    le = inje;
 
-    XGenF = XTestF(:,i);
-    XGenMean = XTestMean(i);
-    XGenStd = XTestStd(i);
+%    XGenF = XTestF(:,i);
+%    XGenMean = XTestMean(i);
+%    XGenStd = XTestStd(i);
 
 
-    XGenFS = repmat(XGenF,1,le);
-    XGenMeanS = repmat(XGenMean,le,1);
-    XGenStdS = repmat(XGenStd,le,1);
+%    XGenFS = repmat(XGenF,1,le);
+%    XGenMeanS = repmat(XGenMean,le,1);
+%    XGenStdS = repmat(XGenStd,le,1);
 
 
     % Emotion Injection one-hot
-    YGenFeS = zeros(inje,le);
+%    YGenFeS = zeros(inje,le);
 
-    for j = 1:inje
-        YGenFeS(j, j) = 1; %20;
-    end
+%    for j = 1:inje
+%        YGenFeS(j, j) = 1; %20;
+%    end
 
     % one-hot injection
-    XYGenF = vertcat(XGenFS,YGenFeS);
+%    XYGenF = vertcat(XGenFS,YGenFeS);
 
     % batch building
-    XGenFSB(:,1+(k-1)*inje:k*inje) = XGenFS;
-    XGenMeanSB(1+(k-1)*inje:k*inje) = XGenMeanS;
-    XGenStdSB(1+(k-1)*inje:k*inje) = XGenStdS;
-    XYGenFB(:,1+(k-1)*inje:k*inje) = XYGenF;
+%    XGenFSB(:,1+(k-1)*inje:k*inje) = XGenFS;
+%    XGenMeanSB(1+(k-1)*inje:k*inje) = XGenMeanS;
+%    XGenStdSB(1+(k-1)*inje:k*inje) = XGenStdS;
+%    XYGenFB(:,1+(k-1)*inje:k*inje) = XYGenF;
 
-end
+%end
 
 
 %% Generate All Test Emotion variants from neutral
 
-ITestN = YTeste == 'NE';
-lne = sum(ITestN);
-lgen = lne*inje;
+%ITestN = YTeste == 'NE';
+%lne = sum(ITestN);
+%lgen = lne*inje;
     
-XGenFSB = zeros([n*m*3,lne*inje]);
-XGenMeanSB = zeros([lne*inje, 1]);
-XGenStdSB = zeros([lne*inje, 1]);
-XYGenFB = zeros([n*m*3+inj,lne*inje]);
-YGenFSt = string([lne*inje,1]);
+%XGenFSB = zeros([n*m*3,lne*inje]);
+%XGenMeanSB = zeros([lne*inje, 1]);
+%XGenStdSB = zeros([lne*inje, 1]);
+%XYGenFB = zeros([n*m*3+inj,lne*inje]);
+%YGenFSt = string([lne*inje,1]);
 
-i = 0;
-for k=1:lts
+%i = 0;
+%for k=1:lts
 
-    if ITestN(k)
+%    if ITestN(k)
 
     % random train results
-    i = i + 1;
-    le = inje;
+%    i = i + 1;
+%    le = inje;
 
-    XGenF = XTestF(:,k);
-    XGenMean = XTestMean(k);
-    XGenStd = XTestStd(k);
+%    XGenF = XTestF(:,k);
+%    XGenMean = XTestMean(k);
+%    XGenStd = XTestStd(k);
 
 
-    XGenFS = repmat(XGenF,1,le);
-    XGenMeanS = repmat(XGenMean,le,1);
-    XGenStdS = repmat(XGenStd,le,1);
+%    XGenFS = repmat(XGenF,1,le);
+%    XGenMeanS = repmat(XGenMean,le,1);
+%    XGenStdS = repmat(XGenStd,le,1);
 
 
     % Emotion Injection one-hot
-    YGenFeS = zeros(inje,le);
-    YGenFeSt = strings([inje,1]);
+%    YGenFeS = zeros(inje,le);
+%    YGenFeSt = strings([inje,1]);
 
-    for j = 1:inje
-        YGenFeS(j, j) = 1; %20;
-        YGenFeSt(j) = char(YTrainDe(j));
-    end
+%    for j = 1:inje
+%        YGenFeS(j, j) = 1; %20;
+%        YGenFeSt(j) = char(YTrainDe(j));
+%    end
 
     % one-hot injection
-    XYGenF = vertcat(XGenFS,YGenFeS);
+%    XYGenF = vertcat(XGenFS,YGenFeS);
 
     % batch building
-    XGenFSB(:,1+(i-1)*inje:i*inje) = XGenFS;
-    XGenMeanSB(1+(i-1)*inje:i*inje) = XGenMeanS;
-    XGenStdSB(1+(i-1)*inje:i*inje) = XGenStdS;
-    XYGenFB(:,1+(i-1)*inje:i*inje) = XYGenF;
+%    XGenFSB(:,1+(i-1)*inje:i*inje) = XGenFS;
+%    XGenMeanSB(1+(i-1)*inje:i*inje) = XGenMeanS;
+%    XGenStdSB(1+(i-1)*inje:i*inje) = XGenStdS;
+%    XYGenFB(:,1+(i-1)*inje:i*inje) = XYGenF;
 
-    YGenFSt(1+(i-1)*inje:i*inje) = YGenFeSt;
+%    YGenFSt(1+(i-1)*inje:i*inje) = YGenFeSt;
 
-    end
-end
+%    end
+%end
 
-YGenFC = categorical(YGenFSt');
+%YGenFC = categorical(YGenFSt');
 
 %%
 % GPU on
-gpuDevice(1);
-reset(gpuDevice(1));
+%gpuDevice(1);
+%reset(gpuDevice(1));
 
-%for j = 1:inje
-    predictedScores = predict(regNet.trainedNet, XYGenFB');
-    XGenFB2 = predictedScores';
-%end
+%%for j = 1:inje
+%    predictedScores = predict(regNet.trainedNet, XYGenFB');
+%    XGenFB2 = predictedScores';
+%%end
 
 % GPU off
-delete(gcp('nocreate'));
-gpuDevice([]);
+%delete(gcp('nocreate'));
+%gpuDevice([]);
 
 % Rescale train results
-XGenFR = generic_mean_std_rescale2D(XGenFSB, XGenMeanSB, XGenStdSB);
-XGenFR2 = generic_mean_std_rescale2D(XGenFB2, XGenMeanSB, XGenStdSB);
+%XGenFR = generic_mean_std_rescale2D(XGenFSB, XGenMeanSB, XGenStdSB);
+%XGenFR2 = generic_mean_std_rescale2D(XGenFB2, XGenMeanSB, XGenStdSB);
 
 
 %% Display Emotion Gen
-k = 1 + floor(rand()*lne);
+%k = 1 + floor(rand()*lne);
 
-subplot(3,3,1);
-If = int8(XGenFR(:,1+(k-1)*inje) * .5 );
-I2 = reshape(If, [n, m, 3]);
+%subplot(3,3,1);
+%If = int8(XGenFR(:,1+(k-1)*inje) * .5 );
+%I2 = reshape(If, [n, m, 3]);
 
-image(I2);
-%title(string(YTest(i)));
-%title(strcat(string(label_names(YTest(i)+1)) ));
+%image(I2);
+%%title(string(YTest(i)));
+%%title(strcat(string(label_names(YTest(i)+1)) ));
 
-for j=1:inje
+%for j=1:inje
 
-    subplot(3,3,1+j);
-    Ift = int8(XGenFR2(:,j+(k-1)*inje) * .5);
-    I2t = reshape(Ift, [n, m, 3]);
+%    subplot(3,3,1+j);
+%    Ift = int8(XGenFR2(:,j+(k-1)*inje) * .5);
+%    I2t = reshape(Ift, [n, m, 3]);
 
-    image(I2t);
-%title(string(I(i)));
+%    image(I2t);
+%%title(string(I(i)));
 
-end
+%end
 
 
 
@@ -955,42 +985,42 @@ end
 
 %% Load Pre-trained Network (AlexNet)
 % AlexNet is a pre-trained network trained on 1000 object categories. 
-alex = alexnet('Weights','none');
-layers = alex;
+%alex = alexnet('Weights','none');
+%layers = alex;
 
 % Review Network Architecture 
-%layers = alex.Layer;
+%%layers = alex.Layer;
 
 % Modify Pre-trained Network 
 % AlexNet was trained to recognize 1000 classes, we need to modify it to
 % recognize just nClasses classes. 
-n_ll = 25;
-n_sml = n_ll - 2;
-layers(1) = imageInputLayer([100, 100, 3]);
-%layers(9) = maxPooling2dLayer(2, 'Name', 'pool2');
-%layers(16) = maxPooling2dLayer(1, 'Name', 'pool5');
-layers(n_sml) = fullyConnectedLayer(inje); % change this based on # of classes
-layers(n_ll) = classificationLayer;
+%n_ll = 25;
+%n_sml = n_ll - 2;
+%layers(1) = imageInputLayer([100, 100, 3]);
+%%layers(9) = maxPooling2dLayer(2, 'Name', 'pool2');
+%%layers(16) = maxPooling2dLayer(1, 'Name', 'pool5');
+%layers(n_sml) = fullyConnectedLayer(inje); % change this based on # of classes
+%layers(n_ll) = classificationLayer;
 
-lgraph = layerGraph(layers);
+%lgraph = layerGraph(layers);
 
 % Perform Transfer Learning
 % For transfer learning we want to change the weights of the network ever so slightly. How
 % much a network is changed during training is controlled by the learning
 % rates. 
 
-max_epoch = 100;
-mb_size = 64;
-opts = trainingOptions('adam', ...
-                'ExecutionEnvironment','auto',...
-                'Shuffle', 'every-epoch',...
-                'MiniBatchSize', mb_size, ...
-                'InitialLearnRate', ini_rate, ...
-                'MaxEpochs', max_epoch);
+%max_epoch = 100;
+%mb_size = 64;
+%opts = trainingOptions('adam', ...
+%                'ExecutionEnvironment','auto',...
+%                'Shuffle', 'every-epoch',...
+%                'MiniBatchSize', mb_size, ...
+%                'InitialLearnRate', ini_rate, ...
+%                'MaxEpochs', max_epoch);
 
                         
                       %'Plots', 'training-progress',...
-%% Load Pre-trained Network (AlexNet)
+%% Load Pre-trained Network (Inceptions)
          % Load Pre-trained Network 
         incept3 = inceptionv3;
 
@@ -1090,18 +1120,24 @@ gpuDevice([]);
 acc = sum(YTeste == Y2Test3C)/lts      
 
 
+% 1 0.3348 0.4141 0.4405
+% 2 0.3860 0.4561 0.4649
+% 3 0.3100 0.3974 0.3493
+% 4 0.3466 0.4701 0.4382
+% 5 0.3581 0.4367 0.4410
+
 
 %% train verification
 % GPU on
-gpuDevice(1);
-reset(gpuDevice(1));
+%gpuDevice(1);
+%reset(gpuDevice(1));
 
-predictedScores = classify(myNet, XTrain3C);
-Y2Train3C = predictedScores;
+%predictedScores = classify(myNet, XTrain3C);
+%Y2Train3C = predictedScores;
 
 % GPU off
-delete(gcp('nocreate'));
-gpuDevice([]);
+%delete(gcp('nocreate'));
+%gpuDevice([]);
 
 %
-acc = sum(YTrain3C == Y2Train3C)/lv
+%acc = sum(YTrain3C == Y2Train3C)/lv
