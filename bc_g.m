@@ -1126,6 +1126,33 @@ acc = sum(YTeste == Y2Test3C)/lts
 % 4 0.3466 0.4701 0.4382
 % 5 0.3581 0.4367 0.4410
 
+%%
+Orig = [0.3348, 0.3860, 0.3755, 0.3466, 0.3581];
+Synt = [0.4141, 0.4561, 0.4192, 0.4701, 0.4367];
+Hybr = [0.4405, 0.4649, 0.3799, 0.4382, 0.4410];
+
+Mo = mean(Orig)
+Ms = mean(Synt)
+Mh = mean(Hybr)
+
+So = std(Orig)
+Ss = std(Synt)
+Sh = std(Hybr)
+
+Ps = signrank(Orig, Synt, 'tail', 'left', 'alpha', 0.01)
+Ph = signrank(Orig, Hybr, 'tail', 'left', 'alpha', 0.01)
+
+%Mo = 0.3602
+%Ms = 0.4392
+%Mh = 0.4329
+
+%So = 0.0208
+%Ss = 0.0239
+%Sh = 0.0316
+
+%95 confedence
+%Ps = 0.0312
+%Ph = 0.0312
 
 %% train verification
 % GPU on
